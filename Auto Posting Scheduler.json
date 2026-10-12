@@ -1,0 +1,275 @@
+{
+  "name": "Auto Posting Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "d918eff5-2bbf-4170-acc2-d3f0bbd44644",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk",
+          "mode": "list",
+          "cachedResultName": "Tugas 4 - Auto Posting",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "0cc19b98-2b0c-4be8-ad13-5b49032320a3",
+      "name": "Google Sheets - Get Rows1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "j9dImmOS4aX5kbsj",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\nconst now = DateTime.now().setZone('Asia/Jakarta');\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  const status = data['Status'];\n  const scheduledDate = data['Scheduled Date'];\n  const scheduledTime = data['Scheduled Time'];\n\n  // Skip jika Status kosong atau bukan 'pending'\n  if (!status || status.toString().trim() === '' || status.toString().toLowerCase().trim() !== 'pending') {\n    continue;\n  }\n\n  if (!scheduledDate || !scheduledTime) continue;\n\n  const dateStr = scheduledDate.toString().trim();\n  const timeStr = scheduledTime.toString().trim();\n\n  // Coba dd/MM/yyyy DULU (karena locale Indonesia)\n  let scheduledDT = DateTime.fromFormat(`${dateStr} ${timeStr}`, 'dd/MM/yyyy H:mm:ss', { zone: 'Asia/Jakarta' });\n  if (!scheduledDT.isValid) {\n    scheduledDT = DateTime.fromFormat(`${dateStr} ${timeStr}`, 'dd/MM/yyyy HH:mm:ss', { zone: 'Asia/Jakarta' });\n  }\n  if (!scheduledDT.isValid) {\n    scheduledDT = DateTime.fromFormat(`${dateStr} ${timeStr}`, 'dd/MM/yyyy H:mm', { zone: 'Asia/Jakarta' });\n  }\n  if (!scheduledDT.isValid) {\n    scheduledDT = DateTime.fromFormat(`${dateStr} ${timeStr}`, 'MM/dd/yyyy H:mm:ss', { zone: 'Asia/Jakarta' });\n  }\n\n  if (!scheduledDT.isValid) continue;\n\n  if (scheduledDT <= now) {\n    output.push({\n      json: {\n        ...data,\n        row_number: data.row_number || item.json.row_number\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "id": "c93b0e33-de1f-4d82-a584-60bcd07c55ad",
+      "name": "Code - Filter by Scheduled Time (Luxon)1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "restore-row-number",
+              "name": "row_number",
+              "value": "={{ $json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "keep-status",
+              "name": "Status",
+              "value": "={{ $json.Status }}",
+              "type": "string"
+            },
+            {
+              "id": "keep-id",
+              "name": "ID",
+              "value": "={{ $json.ID }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "d1557188-43db-4589-8511-1b612bfb91fc",
+      "name": "Edit Fields - Restore row_number1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk",
+          "mode": "list",
+          "cachedResultName": "Tugas 4 - Auto Posting",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dsjbSE57ix5Cqkn_-Xl9LpP7Ik533iGAXEN80if8Uyk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "Status": "Published"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Scheduled Date",
+              "displayName": "Scheduled Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Scheduled Time",
+              "displayName": "Scheduled Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "1e02c3c4-7b23-4c9c-8d3d-05ef4e681521",
+      "name": "Google Sheets - Update Status to Published1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "j9dImmOS4aX5kbsj",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Get Rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets - Get Rows1": {
+      "main": [
+        [
+          {
+            "node": "Code - Filter by Scheduled Time (Luxon)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Filter by Scheduled Time (Luxon)1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Restore row_number1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Restore row_number1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets - Update Status to Published1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ce5e7586-e02e-4028-ae5b-f38c3dfce57d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dc96f10ae7dc95d3c138575ba243a0a167923dbcb524841d451aadf9135d5fb3"
+  },
+  "nodeGroups": [],
+  "id": "prn3SOLKNhIGm9YU",
+  "tags": []
+}
